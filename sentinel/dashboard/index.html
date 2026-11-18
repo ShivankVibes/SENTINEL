@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SENTINEL — Autonomous Hazard Detection & Response System</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=4">
 </head>
 <body>
   <div class="sentinel-app">
@@ -44,17 +44,19 @@
         </div>
         <div class="video-footer">
           <div class="status-row camera-select-row">
-            <span class="label">ACTIVE CAMERA:</span>
-            <div class="cam-select-group">
+            <span class="label">SELECT CAMERA:</span>
+            <div class="cam-toggle-buttons">
+              <button id="btn-cam-0" class="btn btn-sm btn-cam-toggle" data-idx="0">CAMERA 0</button>
+              <button id="btn-cam-1" class="btn btn-sm btn-cam-toggle" data-idx="1">CAMERA 1</button>
               <select id="camera-select" class="cam-dropdown">
-                <option value="">Detecting cameras...</option>
+                <option value="0">Camera 0</option>
+                <option value="1">Camera 1</option>
               </select>
-              <button id="btn-refresh-cameras" class="btn btn-sm" title="Rescan Cameras">↻</button>
             </div>
           </div>
           <div class="status-row">
-            <span class="label">STATUS:</span>
-            <span id="cam-source" class="value">Detecting...</span>
+            <span class="label">ACTIVE DEVICE:</span>
+            <span id="cam-source" class="value">Camera Index 0</span>
           </div>
           <div class="status-row">
             <span class="label">DETECTOR PIPELINE:</span>
@@ -144,7 +146,7 @@
     </main>
   </div>
 
-  <script src="/static/js/arena_map.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/arena_map.js?v=4"></script>
+  <script src="/static/js/app.js?v=4"></script>
 </body>
 </html>

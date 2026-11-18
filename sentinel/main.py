@@ -39,16 +39,8 @@ class SentinelSystem:
             self.calibrator.set_calibration_points([(120, 70), (1160, 70), (1160, 650), (120, 650)])
 
         import os
-        default_cam = 0
-        if "SENTINEL_CAMERA_INDEX" in os.environ:
-            default_cam = int(os.environ["SENTINEL_CAMERA_INDEX"])
-        else:
-            # Auto-detect external camera (Index > 0)
-            available = CameraManager.probe_available_cameras(max_probe=3)
-            ext_cams = [c for c in available if c["index"] > 0]
-            if ext_cams:
-                default_cam = ext_cams[0]["index"]
-                logger.info(f"Auto-detected external camera at index {default_cam}: {ext_cams[0]['name']}")
+        default_cam = int(os.environ.get("SENTINEL_CAMERA_INDEX", 0))
+        logger.info(f"Initializing video feed on Camera Index {default_cam}")
 
         self.camera = CameraManager(device_index=default_cam, fallback_indices=[0, 1, 2], width=1280, height=720, fps=30, synthetic_fallback=True)
         self.tracker = ArucoRoverTracker(calibrator=self.calibrator, target_marker_id=0)

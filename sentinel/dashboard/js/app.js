@@ -12,39 +12,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const camFps = document.getElementById('cam-fps');
   const camSource = document.getElementById('cam-source');
   const cameraSelect = document.getElementById('camera-select');
-  const btnRefreshCameras = document.getElementById('btn-refresh-cameras');
   const mjpegStream = document.getElementById('mjpeg-stream');
+  const btnCam0 = document.getElementById('btn-cam-0');
+  const btnCam1 = document.getElementById('btn-cam-1');
 
   // Camera Management Functions
-  async function loadCameraList() {
-    try {
-      const res = await fetch('/api/cameras');
-      const data = await res.json();
-      cameraSelect.innerHTML = '';
-      if (data.cameras && data.cameras.length > 0) {
-        data.cameras.forEach((cam) => {
-          const opt = document.createElement('option');
-          opt.value = cam.index;
-          opt.textContent = cam.name;
-          if (cam.index === data.active_index) {
-            opt.selected = true;
-          }
-          cameraSelect.appendChild(opt);
-        });
-      } else {
-        const opt = document.createElement('option');
-        opt.value = "0";
-        opt.textContent = "Camera 0 (Default)";
-        cameraSelect.appendChild(opt);
-      }
-    } catch (e) {
-      console.error('Failed to load camera list:', e);
+  function updateCamButtons(activeIdx) {
+    if (btnCam0 && btnCam1) {
+      btnCam0.classList.toggle('active', activeIdx === 0);
+      btnCam1.classList.toggle('active', activeIdx === 1);
+    }
+    if (cameraSelect) {
+      cameraSelect.value = String(activeIdx);
     }
   }
 
-  cameraSelect.addEventListener('change', async (e) => {
-    const selectedIdx = parseInt(e.target.value);
-    camSource.textContent = `Switching to Camera ${selectedIdx}...`;
+  async function switchCamera(selectedIdx) {
+    camSource.textContent = `Connecting Camera ${selectedIdx}...`;
     try {
       const res = await fetch('/api/camera/switch', {
         method: 'POST',
@@ -53,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const result = await res.json();
       if (result.status === 'OK') {
-        camSource.textContent = `Connected to Camera ${selectedIdx}`;
+        updateCamButtons(result.active_index);
+        camSource.textContent = `Active: Camera Index ${result.active_index}`;
         // Reconnect MJPEG stream
         setTimeout(() => {
           mjpegStream.src = `/video_feed?t=${Date.now()}`;
@@ -64,11 +49,22 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('Failed to switch camera:', err);
     }
-  });
+  }
 
-  btnRefreshCameras.addEventListener('click', () => {
-    loadCameraList();
-  });
+  if (btnCam0) btnCam0.addEventListener('click', () => switchCamera(0));
+  if (btnCam1) btnCam1.addEventListener('click', () => switchCamera(1));
+  if (cameraSelect) cameraSelect.addEventListener('change', (e) => switchCamera(parseInt(e.target.value)));
+
+  async function loadCameraList() {
+    try {
+      const res = await fetch('/api/cameras');
+      const data = await res.json();
+      updateCamButtons(data.active_index);
+      camSource.textContent = `Active: Camera Index ${data.active_index}`;
+    } catch (e) {
+      console.error('Failed to load camera list:', e);
+    }
+  }
 
   loadCameraList();
 

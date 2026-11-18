@@ -261,10 +261,33 @@ body {
   align-items: center;
 }
 
-.cam-select-group {
+.cam-toggle-buttons {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.btn-cam-toggle {
+  background-color: var(--bg-card);
+  color: var(--text-dim);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.btn-cam-toggle:hover {
+  border-color: var(--accent-cyan);
+  color: var(--text-main);
+}
+
+.btn-cam-toggle.active {
+  background-color: var(--accent-cyan);
+  color: #07090e;
+  border-color: var(--accent-cyan);
+  font-weight: 800;
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.4);
 }
 
 .cam-dropdown {
