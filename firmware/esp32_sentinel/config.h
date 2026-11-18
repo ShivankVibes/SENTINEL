@@ -3,8 +3,8 @@
 
 /**
  * ==============================================================================
- * SENTINEL ROVER HARDWARE CONFIGURATION — OPTION 2 (HARDWARE PWM VIA ENA/ENB)
- * Supports both ESP8266 (NodeMCU 12E) and ESP32
+ * SENTINEL ROVER HARDWARE CONFIGURATION — HW-094 (No ENA/ENB required)
+ * Configured specifically for NodeMCU ESP8266-12E and HW-094 Motor Driver
  * ==============================================================================
  */
 
@@ -23,17 +23,13 @@
 
 #if defined(ESP8266)
   // ============================================================================
-  // NodeMCU ESP8266-12E (OPTION 2: Hardware PWM Enabled)
+  // NodeMCU ESP8266-12E Pin Mapping for HW-094
   // ============================================================================
-  // Left Motor (Motor A)
-  #define MOTOR_LEFT_ENA      0   // NodeMCU Pin D3 (PWM Speed Control 0-255)
-  #define MOTOR_LEFT_IN1      5   // NodeMCU Pin D1 (Direction Fwd)
-  #define MOTOR_LEFT_IN2      4   // NodeMCU Pin D2 (Direction Rev)
-
-  // Right Motor (Motor B)
-  #define MOTOR_RIGHT_ENB     2   // NodeMCU Pin D4 (PWM Speed Control 0-255)
-  #define MOTOR_RIGHT_IN3    14   // NodeMCU Pin D5 (Direction Fwd)
-  #define MOTOR_RIGHT_IN4    12   // NodeMCU Pin D6 (Direction Rev)
+  // Direct 4-wire control (ENA & ENB are hardwired on HW-094)
+  #define MOTOR_LEFT_IN1      5   // NodeMCU Pin D1 (Left Motor Forward)
+  #define MOTOR_LEFT_IN2      4   // NodeMCU Pin D2 (Left Motor Reverse)
+  #define MOTOR_RIGHT_IN3    14   // NodeMCU Pin D5 (Right Motor Forward)
+  #define MOTOR_RIGHT_IN4    12   // NodeMCU Pin D6 (Right Motor Reverse)
 
   // Ultrasonic Sensor
   #define ULTRASONIC_TRIG_PIN 13  // NodeMCU Pin D7
@@ -41,17 +37,12 @@
 
 #else
   // ============================================================================
-  // ESP32-12E / Dev Module (OPTION 2: Hardware PWM Enabled)
+  // ESP32-12E Pin Mapping for HW-094
   // ============================================================================
-  // Left Motor (Motor A)
-  #define MOTOR_LEFT_ENA     25   // ESP32 Pin D25 (PWM Speed Control 0-255)
-  #define MOTOR_LEFT_IN1     16   // ESP32 Pin RX2 / D16 (Direction Fwd)
-  #define MOTOR_LEFT_IN2     17   // ESP32 Pin TX2 / D17 (Direction Rev)
-
-  // Right Motor (Motor B)
-  #define MOTOR_RIGHT_ENB    26   // ESP32 Pin D26 (PWM Speed Control 0-255)
-  #define MOTOR_RIGHT_IN3    18   // ESP32 Pin D18 (Direction Fwd)
-  #define MOTOR_RIGHT_IN4    19   // ESP32 Pin D19 (Direction Rev)
+  #define MOTOR_LEFT_IN1     16   // ESP32 Pin RX2 / D16 (Left Motor Forward)
+  #define MOTOR_LEFT_IN2     17   // ESP32 Pin TX2 / D17 (Left Motor Reverse)
+  #define MOTOR_RIGHT_IN3    18   // ESP32 Pin D18 (Right Motor Forward)
+  #define MOTOR_RIGHT_IN4    19   // ESP32 Pin D19 (Right Motor Reverse)
 
   // Ultrasonic Sensor
   #define ULTRASONIC_TRIG_PIN 22  // ESP32 Pin D22

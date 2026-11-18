@@ -1,6 +1,7 @@
 /**
  * ==============================================================================
- * SENTINEL — Autonomous Rover Firmware (OPTION 2: PWM Speed via ENA & ENB)
+ * SENTINEL — Autonomous Rover Firmware for HW-094
+ * Direct 4-Wire Control (IN1, IN2, IN3, IN4) with PWM Speed Support
  * Dual-Compatible: NodeMCU ESP8266-12E and ESP32
  * ==============================================================================
  */
@@ -27,25 +28,9 @@ int currentSpeed = 0;
 float currentDistanceCm = -1.0;
 unsigned long pulseEndTime = 0;
 
-void setMotorSpeed(int speedLeft, int speedRight) {
-  speedLeft = constrain(speedLeft, 0, 255);
-  speedRight = constrain(speedRight, 0, 255);
-
-  #if defined(ESP8266)
-    analogWrite(MOTOR_LEFT_ENA, speedLeft);
-    analogWrite(MOTOR_RIGHT_ENB, speedRight);
-  #else
-    analogWrite(MOTOR_LEFT_ENA, speedLeft);
-    analogWrite(MOTOR_RIGHT_ENB, speedRight);
-  #endif
-}
-
 void setupMotors() {
-  pinMode(MOTOR_LEFT_ENA, OUTPUT);
   pinMode(MOTOR_LEFT_IN1, OUTPUT);
   pinMode(MOTOR_LEFT_IN2, OUTPUT);
-
-  pinMode(MOTOR_RIGHT_ENB, OUTPUT);
   pinMode(MOTOR_RIGHT_IN3, OUTPUT);
   pinMode(MOTOR_RIGHT_IN4, OUTPUT);
 
@@ -63,48 +48,46 @@ void setupSensors() {
 }
 
 void stopMotors() {
-  setMotorSpeed(0, 0);
-  digitalWrite(MOTOR_LEFT_IN1, LOW);
-  digitalWrite(MOTOR_LEFT_IN2, LOW);
-  digitalWrite(MOTOR_RIGHT_IN3, LOW);
-  digitalWrite(MOTOR_RIGHT_IN4, LOW);
+  analogWrite(MOTOR_LEFT_IN1, 0);
+  analogWrite(MOTOR_LEFT_IN2, 0);
+  analogWrite(MOTOR_RIGHT_IN3, 0);
+  analogWrite(MOTOR_RIGHT_IN4, 0);
   currentAction = "STOP";
 }
 
 void moveForward(int speed) {
   if (isEmergencyStopped) return;
-  // Left Motor Forward
-  digitalWrite(MOTOR_LEFT_IN1, HIGH);
-  digitalWrite(MOTOR_LEFT_IN2, LOW);
-  // Right Motor Forward
-  digitalWrite(MOTOR_RIGHT_IN3, HIGH);
-  digitalWrite(MOTOR_RIGHT_IN4, LOW);
-
-  setMotorSpeed(speed, speed);
+  speed = constrain(speed, 0, 255);
+  // Left Motor Forward: IN1 = PWM, IN2 = LOW
+  analogWrite(MOTOR_LEFT_IN1, speed);
+  analogWrite(MOTOR_LEFT_IN2, 0);
+  // Right Motor Forward: IN3 = PWM, IN4 = LOW
+  analogWrite(MOTOR_RIGHT_IN3, speed);
+  analogWrite(MOTOR_RIGHT_IN4, 0);
   currentAction = "MOVE_FORWARD";
 }
 
 void turnLeft(int speed) {
   if (isEmergencyStopped) return;
-  // Left Motor Reverse, Right Motor Forward
-  digitalWrite(MOTOR_LEFT_IN1, LOW);
-  digitalWrite(MOTOR_LEFT_IN2, HIGH);
-  digitalWrite(MOTOR_RIGHT_IN3, HIGH);
-  digitalWrite(MOTOR_RIGHT_IN4, LOW);
-
-  setMotorSpeed(speed, speed);
+  speed = constrain(speed, 0, 255);
+  // Left Motor Reverse: IN1 = LOW, IN2 = PWM
+  analogWrite(MOTOR_LEFT_IN1, 0);
+  analogWrite(MOTOR_LEFT_IN2, speed);
+  // Right Motor Forward: IN3 = PWM, IN4 = LOW
+  analogWrite(MOTOR_RIGHT_IN3, speed);
+  analogWrite(MOTOR_RIGHT_IN4, 0);
   currentAction = "TURN_LEFT";
 }
 
 void turnRight(int speed) {
   if (isEmergencyStopped) return;
-  // Left Motor Forward, Right Motor Reverse
-  digitalWrite(MOTOR_LEFT_IN1, HIGH);
-  digitalWrite(MOTOR_LEFT_IN2, LOW);
-  digitalWrite(MOTOR_RIGHT_IN3, LOW);
-  digitalWrite(MOTOR_RIGHT_IN4, HIGH);
-
-  setMotorSpeed(speed, speed);
+  speed = constrain(speed, 0, 255);
+  // Left Motor Forward: IN1 = PWM, IN2 = LOW
+  analogWrite(MOTOR_LEFT_IN1, speed);
+  analogWrite(MOTOR_LEFT_IN2, 0);
+  // Right Motor Reverse: IN3 = LOW, IN4 = PWM
+  analogWrite(MOTOR_RIGHT_IN3, 0);
+  analogWrite(MOTOR_RIGHT_IN4, speed);
   currentAction = "TURN_RIGHT";
 }
 
@@ -199,7 +182,7 @@ void handleTelemetry() {
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.println("\n[SENTINEL] Booting Rover Firmware (PWM Enabled)...");
+  Serial.println("\n[SENTINEL] Booting Rover Firmware for HW-094...");
 
   setupMotors();
   setupSensors();
