@@ -38,7 +38,19 @@ class SentinelSystem:
         if not self.calibrator.is_calibrated:
             self.calibrator.set_calibration_points([(120, 70), (1160, 70), (1160, 650), (120, 650)])
 
-        self.camera = CameraManager(device_index=0, width=1280, height=720, fps=30, synthetic_fallback=True)
+        import os
+        default_cam = 0
+        if "SENTINEL_CAMERA_INDEX" in os.environ:
+            default_cam = int(os.environ["SENTINEL_CAMERA_INDEX"])
+        else:
+            # Auto-detect external camera (Index > 0)
+            available = CameraManager.probe_available_cameras(max_probe=3)
+            ext_cams = [c for c in available if c["index"] > 0]
+            if ext_cams:
+                default_cam = ext_cams[0]["index"]
+                logger.info(f"Auto-detected external camera at index {default_cam}: {ext_cams[0]['name']}")
+
+        self.camera = CameraManager(device_index=default_cam, fallback_indices=[0, 1, 2], width=1280, height=720, fps=30, synthetic_fallback=True)
         self.tracker = ArucoRoverTracker(calibrator=self.calibrator, target_marker_id=0)
         self.detector = ColorContourHazardDetector(calibrator=self.calibrator)
         self.annotator = FrameAnnotator(calibrator=self.calibrator)
@@ -112,6 +124,19 @@ class SentinelSystem:
             self.loop_thread.join(timeout=1.0)
         self.camera.stop()
         self.log_event("SYSTEM", "System halted.")
+
+    def switch_camera(self, new_index: int) -> bool:
+        """Switch camera device dynamically."""
+        success = self.camera.switch_device(new_index)
+        if success:
+            self.log_event("CAMERA", f"Switched active video feed to Camera Index {new_index}")
+        else:
+            self.log_event("CAMERA", f"Failed to switch to Camera Index {new_index}", level="WARN")
+        return success
+
+    def get_available_cameras(self) -> list:
+        """Scan and return list of detected cameras."""
+        return CameraManager.probe_available_cameras(max_probe=4)
 
     def set_mode(self, new_mode: str):
         """Switch operating mode between SIMULATION and REAL."""

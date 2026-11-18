@@ -41,7 +41,7 @@ def shutdown_event():
     sentinel.stop()
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def get_dashboard():
     index_path = os.path.join(DASHBOARD_DIR, "index.html")
     if os.path.exists(index_path):
@@ -109,6 +109,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 sentinel.trigger_emergency_stop()
             elif cmd_type == "RESET_EMERGENCY":
                 sentinel.reset_emergency()
+            elif cmd_type == "SWITCH_CAMERA":
+                idx = int(data.get("device_index", 0))
+                sentinel.switch_camera(idx)
             elif cmd_type == "RESET_ROVER":
                 rx = float(data.get("x_cm", 30.0))
                 ry = float(data.get("y_cm", 30.0))
@@ -137,6 +140,30 @@ def set_target(req: TargetRequest):
 def emergency_stop():
     sentinel.trigger_emergency_stop()
     return {"status": "EMERGENCY_STOP_TRIGGERED"}
+
+
+class CameraSwitchRequest(BaseModel):
+    device_index: int
+
+
+@app.get("/api/cameras")
+def get_cameras():
+    cameras = sentinel.get_available_cameras()
+    return {
+        "cameras": cameras,
+        "active_index": sentinel.camera.current_index,
+        "is_synthetic": sentinel.camera.is_synthetic,
+    }
+
+
+@app.post("/api/camera/switch")
+def switch_camera(req: CameraSwitchRequest):
+    success = sentinel.switch_camera(req.device_index)
+    return {
+        "status": "OK" if success else "FAILED",
+        "active_index": sentinel.camera.current_index,
+        "is_synthetic": sentinel.camera.is_synthetic,
+    }
 
 
 @app.post("/api/reset_emergency")

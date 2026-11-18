@@ -48,6 +48,59 @@ class CameraManager:
         self.capture_thread: Optional[threading.Thread] = None
         self.status_message = "Uninitialized"
 
+    @staticmethod
+    def probe_available_cameras(max_probe: int = 4) -> list:
+        """Scan system for available video capture devices."""
+        available = []
+        for idx in range(max_probe):
+            try:
+                cap = cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
+                if not cap.isOpened():
+                    cap = cv2.VideoCapture(idx)
+                if cap.isOpened():
+                    ret, frame = cap.read()
+                    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    cap.release()
+                    if ret and frame is not None and frame.size > 0:
+                        desc = "Built-in / Default Camera" if idx == 0 else f"External USB / Secondary Camera"
+                        available.append({
+                            "index": idx,
+                            "name": f"Camera {idx}: {desc} ({w}x{h})",
+                            "resolution": f"{w}x{h}",
+                            "is_responsive": True,
+                        })
+            except Exception:
+                pass
+        return available
+
+    def switch_device(self, new_index: int) -> bool:
+        """Dynamically switch to a different camera device without stopping the capture thread."""
+        logger.info(f"Switching camera to device index {new_index}...")
+        with self.lock:
+            old_cap = self.cap
+            self.cap = None
+
+        if old_cap:
+            try:
+                old_cap.release()
+            except Exception:
+                pass
+
+        success = self._open_device(new_index)
+        with self.lock:
+            if success:
+                self.device_index = new_index
+                self.is_synthetic = False
+                self.status_message = f"Connected to Hardware Camera Index {self.current_index}"
+                logger.info(f"Camera successfully switched to index {new_index}")
+                return True
+            else:
+                self.is_synthetic = True
+                self.status_message = f"Failed to open camera index {new_index}. Running synthetic fallback."
+                logger.warning(f"Failed to open camera {new_index}.")
+                return False
+
     def start(self) -> bool:
         """Start the background frame capture thread."""
         if self.is_running:

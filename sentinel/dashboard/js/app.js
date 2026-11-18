@@ -11,6 +11,66 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnEmergency = document.getElementById('btn-emergency');
   const camFps = document.getElementById('cam-fps');
   const camSource = document.getElementById('cam-source');
+  const cameraSelect = document.getElementById('camera-select');
+  const btnRefreshCameras = document.getElementById('btn-refresh-cameras');
+  const mjpegStream = document.getElementById('mjpeg-stream');
+
+  // Camera Management Functions
+  async function loadCameraList() {
+    try {
+      const res = await fetch('/api/cameras');
+      const data = await res.json();
+      cameraSelect.innerHTML = '';
+      if (data.cameras && data.cameras.length > 0) {
+        data.cameras.forEach((cam) => {
+          const opt = document.createElement('option');
+          opt.value = cam.index;
+          opt.textContent = cam.name;
+          if (cam.index === data.active_index) {
+            opt.selected = true;
+          }
+          cameraSelect.appendChild(opt);
+        });
+      } else {
+        const opt = document.createElement('option');
+        opt.value = "0";
+        opt.textContent = "Camera 0 (Default)";
+        cameraSelect.appendChild(opt);
+      }
+    } catch (e) {
+      console.error('Failed to load camera list:', e);
+    }
+  }
+
+  cameraSelect.addEventListener('change', async (e) => {
+    const selectedIdx = parseInt(e.target.value);
+    camSource.textContent = `Switching to Camera ${selectedIdx}...`;
+    try {
+      const res = await fetch('/api/camera/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_index: selectedIdx })
+      });
+      const result = await res.json();
+      if (result.status === 'OK') {
+        camSource.textContent = `Connected to Camera ${selectedIdx}`;
+        // Reconnect MJPEG stream
+        setTimeout(() => {
+          mjpegStream.src = `/video_feed?t=${Date.now()}`;
+        }, 300);
+      } else {
+        camSource.textContent = `Failed to connect Camera ${selectedIdx}`;
+      }
+    } catch (err) {
+      console.error('Failed to switch camera:', err);
+    }
+  });
+
+  btnRefreshCameras.addEventListener('click', () => {
+    loadCameraList();
+  });
+
+  loadCameraList();
 
   const valX = document.getElementById('val-x');
   const valY = document.getElementById('val-y');

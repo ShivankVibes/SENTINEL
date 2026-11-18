@@ -258,6 +258,31 @@ body {
 .status-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.cam-select-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cam-dropdown {
+  background-color: var(--bg-secondary);
+  color: var(--accent-cyan);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  outline: none;
+  cursor: pointer;
+  max-width: 250px;
+}
+
+.cam-dropdown:focus {
+  border-color: var(--accent-cyan);
+}
 }
 
 .status-row .label {
