@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
- * SENTINEL — Autonomous Rover Firmware
- * Dual Compatible: NodeMCU ESP8266-12E and ESP32
+ * SENTINEL — Autonomous Rover Firmware (OPTION 2: PWM Speed via ENA & ENB)
+ * Dual-Compatible: NodeMCU ESP8266-12E and ESP32
  * ==============================================================================
  */
 
@@ -27,11 +27,32 @@ int currentSpeed = 0;
 float currentDistanceCm = -1.0;
 unsigned long pulseEndTime = 0;
 
+void setMotorSpeed(int speedLeft, int speedRight) {
+  speedLeft = constrain(speedLeft, 0, 255);
+  speedRight = constrain(speedRight, 0, 255);
+
+  #if defined(ESP8266)
+    analogWrite(MOTOR_LEFT_ENA, speedLeft);
+    analogWrite(MOTOR_RIGHT_ENB, speedRight);
+  #else
+    analogWrite(MOTOR_LEFT_ENA, speedLeft);
+    analogWrite(MOTOR_RIGHT_ENB, speedRight);
+  #endif
+}
+
 void setupMotors() {
+  pinMode(MOTOR_LEFT_ENA, OUTPUT);
   pinMode(MOTOR_LEFT_IN1, OUTPUT);
   pinMode(MOTOR_LEFT_IN2, OUTPUT);
+
+  pinMode(MOTOR_RIGHT_ENB, OUTPUT);
   pinMode(MOTOR_RIGHT_IN3, OUTPUT);
   pinMode(MOTOR_RIGHT_IN4, OUTPUT);
+
+  #if defined(ESP8266)
+    analogWriteRange(255);  // Set standard 8-bit PWM (0-255)
+  #endif
+
   stopMotors();
 }
 
@@ -42,6 +63,7 @@ void setupSensors() {
 }
 
 void stopMotors() {
+  setMotorSpeed(0, 0);
   digitalWrite(MOTOR_LEFT_IN1, LOW);
   digitalWrite(MOTOR_LEFT_IN2, LOW);
   digitalWrite(MOTOR_RIGHT_IN3, LOW);
@@ -51,28 +73,38 @@ void stopMotors() {
 
 void moveForward(int speed) {
   if (isEmergencyStopped) return;
+  // Left Motor Forward
   digitalWrite(MOTOR_LEFT_IN1, HIGH);
   digitalWrite(MOTOR_LEFT_IN2, LOW);
+  // Right Motor Forward
   digitalWrite(MOTOR_RIGHT_IN3, HIGH);
   digitalWrite(MOTOR_RIGHT_IN4, LOW);
+
+  setMotorSpeed(speed, speed);
   currentAction = "MOVE_FORWARD";
 }
 
 void turnLeft(int speed) {
   if (isEmergencyStopped) return;
+  // Left Motor Reverse, Right Motor Forward
   digitalWrite(MOTOR_LEFT_IN1, LOW);
   digitalWrite(MOTOR_LEFT_IN2, HIGH);
   digitalWrite(MOTOR_RIGHT_IN3, HIGH);
   digitalWrite(MOTOR_RIGHT_IN4, LOW);
+
+  setMotorSpeed(speed, speed);
   currentAction = "TURN_LEFT";
 }
 
 void turnRight(int speed) {
   if (isEmergencyStopped) return;
+  // Left Motor Forward, Right Motor Reverse
   digitalWrite(MOTOR_LEFT_IN1, HIGH);
   digitalWrite(MOTOR_LEFT_IN2, LOW);
   digitalWrite(MOTOR_RIGHT_IN3, LOW);
   digitalWrite(MOTOR_RIGHT_IN4, HIGH);
+
+  setMotorSpeed(speed, speed);
   currentAction = "TURN_RIGHT";
 }
 
@@ -148,7 +180,7 @@ void handleCommand() {
     stopMotors();
   }
 
-  server.send(200, "application/json", "{\"status\":\"OK\",\"action\":\"" + action + "\"}");
+  server.send(200, "application/json", "{\"status\":\"OK\",\"action\":\"" + action + "\",\"speed\":" + String(speed) + "}");
 }
 
 void handleTelemetry() {
@@ -167,7 +199,7 @@ void handleTelemetry() {
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.println("\n[SENTINEL] Booting Rover Firmware...");
+  Serial.println("\n[SENTINEL] Booting Rover Firmware (PWM Enabled)...");
 
   setupMotors();
   setupSensors();
@@ -203,7 +235,7 @@ void loop() {
     pulseEndTime = 0;
   }
 
-  // Safety Watchdog (Auto-stop on communication loss)
+  // Safety Watchdog
   if (millis() - lastCommandTime > WATCHDOG_TIMEOUT_MS && currentAction != "STOP") {
     stopMotors();
   }
