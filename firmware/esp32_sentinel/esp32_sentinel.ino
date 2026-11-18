@@ -1,21 +1,23 @@
 /**
  * ==============================================================================
- * SENTINEL — Autonomous Rover Firmware (ESP32-12E)
- * ==============================================================================
- * Implements:
- * - Local Wi-Fi Access Point / Station mode
- * - Non-blocking HTTP Command & Telemetry API
- * - Differential Drive Motor Control
- * - Forward Ultrasonic Obstacle Detection
- * - Hardware Watchdog Failsafe (Auto-stop on connection loss)
+ * SENTINEL — Autonomous Rover Firmware
+ * Dual Compatible: NodeMCU ESP8266-12E and ESP32
  * ==============================================================================
  */
 
-#include <WiFi.h>
-#include <WebServer.h>
+#if defined(ESP8266)
+  #include <ESP8266WiFi.h>
+  #include <ESP8266WebServer.h>
+  typedef ESP8266WebServer WebServerType;
+#else
+  #include <WiFi.h>
+  #include <WebServer.h>
+  typedef WebServer WebServerType;
+#endif
+
 #include "config.h"
 
-WebServer server(HTTP_SERVER_PORT);
+WebServerType server(HTTP_SERVER_PORT);
 
 // State tracking
 unsigned long lastCommandTime = 0;
@@ -49,10 +51,8 @@ void stopMotors() {
 
 void moveForward(int speed) {
   if (isEmergencyStopped) return;
-  // Left motor forward
   digitalWrite(MOTOR_LEFT_IN1, HIGH);
   digitalWrite(MOTOR_LEFT_IN2, LOW);
-  // Right motor forward
   digitalWrite(MOTOR_RIGHT_IN3, HIGH);
   digitalWrite(MOTOR_RIGHT_IN4, LOW);
   currentAction = "MOVE_FORWARD";
@@ -60,7 +60,6 @@ void moveForward(int speed) {
 
 void turnLeft(int speed) {
   if (isEmergencyStopped) return;
-  // Left motor reverse, Right motor forward
   digitalWrite(MOTOR_LEFT_IN1, LOW);
   digitalWrite(MOTOR_LEFT_IN2, HIGH);
   digitalWrite(MOTOR_RIGHT_IN3, HIGH);
@@ -70,7 +69,6 @@ void turnLeft(int speed) {
 
 void turnRight(int speed) {
   if (isEmergencyStopped) return;
-  // Left motor forward, Right motor reverse
   digitalWrite(MOTOR_LEFT_IN1, HIGH);
   digitalWrite(MOTOR_LEFT_IN2, LOW);
   digitalWrite(MOTOR_RIGHT_IN3, LOW);
@@ -98,7 +96,6 @@ void handleCommand() {
   }
 
   String body = server.arg("plain");
-  // Simple JSON parsing to avoid heavy dependencies
   int actionIdx = body.indexOf("\"action\":\"");
   if (actionIdx == -1) {
     server.send(400, "application/json", "{\"status\":\"ERROR\",\"message\":\"Invalid action\"}");
@@ -177,7 +174,9 @@ void setup() {
 
   #if WIFI_MODE_AP
     WiFi.softAP(AP_SSID, AP_PASSWORD);
-    Serial.print("[WiFi] Access Point started. IP: ");
+    Serial.print("[WiFi] Access Point started: ");
+    Serial.println(AP_SSID);
+    Serial.print("[WiFi] IP: ");
     Serial.println(WiFi.softAPIP());
   #else
     WiFi.begin(STA_SSID, STA_PASSWORD);
@@ -198,13 +197,13 @@ void setup() {
 void loop() {
   server.handleClient();
 
-  // Pulse duration timeout (e.g., stop moving after commanded 250ms)
+  // Pulse duration timeout
   if (pulseEndTime > 0 && millis() >= pulseEndTime && currentAction != "STOP") {
     stopMotors();
     pulseEndTime = 0;
   }
 
-  // Safety Watchdog: If no command received for > WATCHDOG_TIMEOUT_MS, force stop
+  // Safety Watchdog (Auto-stop on communication loss)
   if (millis() - lastCommandTime > WATCHDOG_TIMEOUT_MS && currentAction != "STOP") {
     stopMotors();
   }

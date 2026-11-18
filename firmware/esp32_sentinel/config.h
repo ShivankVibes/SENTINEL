@@ -3,18 +3,13 @@
 
 /**
  * ==============================================================================
- * SENTINEL ESP32-12E HARDWARE CONFIGURATION
- * ==============================================================================
- * IMPORTANT:
- * 1. Do NOT connect or drive motors until your HW-094 motor driver board model
- *    and exact pinout are physically verified with a multimeter / datasheet.
- * 2. ESP32 GPIOs operate at 3.3V logic. Ultrasonic Echo pins may output 5V
- *    unless using a 3.3V-compatible sensor (like HC-SR04P or voltage divider).
+ * SENTINEL ROVER HARDWARE CONFIGURATION
+ * Supports both ESP8266 (NodeMCU 12E) and ESP32
  * ==============================================================================
  */
 
 // --- Wi-Fi Configuration ---
-#define WIFI_MODE_AP true                // true: ESP32 creates own AP, false: connect to local Wi-Fi
+#define WIFI_MODE_AP true                // true: creates Access Point, false: connects to local Wi-Fi
 #define AP_SSID       "SENTINEL_ROVER"
 #define AP_PASSWORD   "sentinel123"
 
@@ -26,22 +21,33 @@
 // --- Safety & Watchdog ---
 #define WATCHDOG_TIMEOUT_MS 500          // Auto-stop motors if no command received within 500ms
 
-// --- Motor Driver Pins (Placeholders - Verify HW-094 board before connecting) ---
-// HW-094 is typically a dual H-bridge (L298N mini or similar).
-// These GPIOs are safe defaults on ESP32-12E (avoiding bootstrap pins GPIO0, 2, 12, 15).
-#define MOTOR_LEFT_IN1    16
-#define MOTOR_LEFT_IN2    17
-#define MOTOR_RIGHT_IN3   18
-#define MOTOR_RIGHT_IN4   19
+#if defined(ESP8266)
+  // ============================================================================
+  // ESP8266 NodeMCU 12E Pin Mapping
+  // ============================================================================
+  // Safe GPIOs that do not block ESP8266 boot:
+  // D1 = GPIO 5, D2 = GPIO 4, D5 = GPIO 14, D6 = GPIO 12, D7 = GPIO 13, D8 = GPIO 15
+  #define MOTOR_LEFT_IN1      5   // NodeMCU Pin D1 (Left Forward)
+  #define MOTOR_LEFT_IN2      4   // NodeMCU Pin D2 (Left Reverse)
+  #define MOTOR_RIGHT_IN3    14   // NodeMCU Pin D5 (Right Forward)
+  #define MOTOR_RIGHT_IN4    12   // NodeMCU Pin D6 (Right Reverse)
 
-// PWM Channels (ESP32 LEDC)
-#define PWM_FREQ          1000
-#define PWM_RESOLUTION    8
-#define PWM_CHAN_LEFT     0
-#define PWM_CHAN_RIGHT    1
+  // Ultrasonic Sensor
+  #define ULTRASONIC_TRIG_PIN 13  // NodeMCU Pin D7
+  #define ULTRASONIC_ECHO_PIN 15  // NodeMCU Pin D8 (Note: idle LOW is safe for boot)
 
-// --- Ultrasonic Sensor Pins (Verify sensor model before connecting) ---
-#define ULTRASONIC_TRIG_PIN 22
-#define ULTRASONIC_ECHO_PIN 23
+#else
+  // ============================================================================
+  // ESP32-12E / ESP32 Dev Module Pin Mapping
+  // ============================================================================
+  #define MOTOR_LEFT_IN1     16   // ESP32 Pin RX2 / D16 (Left Forward)
+  #define MOTOR_LEFT_IN2     17   // ESP32 Pin TX2 / D17 (Left Reverse)
+  #define MOTOR_RIGHT_IN3    18   // ESP32 Pin D18 (Right Forward)
+  #define MOTOR_RIGHT_IN4    19   // ESP32 Pin D19 (Right Reverse)
+
+  // Ultrasonic Sensor
+  #define ULTRASONIC_TRIG_PIN 22  // ESP32 Pin D22
+  #define ULTRASONIC_ECHO_PIN 23  // ESP32 Pin D23
+#endif
 
 #endif // SENTINEL_CONFIG_H
