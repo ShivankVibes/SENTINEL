@@ -8,6 +8,7 @@ or simulation testing.
 import time
 import threading
 import logging
+import subprocess
 from typing import Optional, Tuple
 import cv2
 import numpy as np
@@ -21,7 +22,7 @@ class CameraManager:
 
     def __init__(
         self,
-        device_index: int = 0,
+        device_index: int = 1,
         fallback_indices: Optional[list] = None,
         width: int = 1280,
         height: int = 720,
@@ -29,7 +30,7 @@ class CameraManager:
         synthetic_fallback: bool = True,
     ):
         self.device_index = device_index
-        self.fallback_indices = fallback_indices or [1, 2]
+        self.fallback_indices = fallback_indices or [0]
         self.target_width = width
         self.target_height = height
         self.target_fps = fps
@@ -48,31 +49,59 @@ class CameraManager:
         self.capture_thread: Optional[threading.Thread] = None
         self.status_message = "Uninitialized"
 
-    @staticmethod
-    def probe_available_cameras(max_probe: int = 4) -> list:
-        """Scan system for available video capture devices."""
-        available = []
-        for idx in range(max_probe):
+    @classmethod
+    def probe_available_cameras(cls, active_index: int = -1) -> list:
+        """Scan system for available video capture devices without disrupting active streams."""
+        cameras = []
+        # Try macOS native system profiler first to avoid locking AVFoundation UVC streams
+        try:
+            out = subprocess.check_output(["system_profiler", "SPCameraDataType"], text=True, timeout=2.0)
+            lines = [line.strip() for line in out.splitlines() if line.strip()]
+            names = []
+            for line in lines:
+                if line.endswith(":") and line != "Camera:":
+                    names.append(line[:-1].strip())
+            
+            for idx, name in enumerate(names):
+                is_ext = idx > 0
+                label = f"Camera {idx}: {name}" + (" (External USB)" if is_ext else " (Built-in Mac)")
+                cameras.append({
+                    "index": idx,
+                    "name": label,
+                    "resolution": "1920x1080",
+                    "is_responsive": True,
+                })
+            if cameras:
+                return cameras
+        except Exception as e:
+            logger.debug(f"system_profiler probe failed: {e}")
+
+        # Fallback OpenCV index probe (skips active_index to protect active stream)
+        for idx in range(3):
+            if idx == active_index:
+                cameras.append({
+                    "index": idx,
+                    "name": f"Camera {idx}: Active Camera (Streaming)",
+                    "resolution": "1920x1080",
+                    "is_responsive": True,
+                })
+                continue
             try:
-                cap = cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
-                if not cap.isOpened():
-                    cap = cv2.VideoCapture(idx)
+                cap = cv2.VideoCapture(idx)
                 if cap.isOpened():
-                    ret, frame = cap.read()
-                    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    ret, _ = cap.read()
                     cap.release()
-                    if ret and frame is not None and frame.size > 0:
-                        desc = "Built-in / Default Camera" if idx == 0 else f"External USB / Secondary Camera"
-                        available.append({
+                    if ret:
+                        desc = "Built-in Camera" if idx == 0 else "External USB Camera"
+                        cameras.append({
                             "index": idx,
-                            "name": f"Camera {idx}: {desc} ({w}x{h})",
-                            "resolution": f"{w}x{h}",
+                            "name": f"Camera {idx}: {desc}",
+                            "resolution": "1920x1080",
                             "is_responsive": True,
                         })
             except Exception:
                 pass
-        return available
+        return cameras
 
     def switch_device(self, new_index: int) -> bool:
         """Dynamically switch to a different camera device without stopping the capture thread."""
@@ -196,7 +225,7 @@ class CameraManager:
                     last_fps_calc = now
 
     def _attempt_reconnect(self):
-        """Attempt to recover disconnected camera."""
+        """Attempt to recover disconnected camera, prioritizing the configured device_index."""
         if self.cap:
             try:
                 self.cap.release()
@@ -204,15 +233,25 @@ class CameraManager:
                 pass
             self.cap = None
 
-        for idx in [self.device_index] + self.fallback_indices:
-            if self._open_device(idx):
-                logger.info(f"Camera reconnected on index {idx}")
+        # Prioritize the user's selected device_index (e.g. External USB camera)
+        for attempt in range(3):
+            if self._open_device(self.device_index):
+                logger.info(f"Camera reconnected on configured index {self.device_index}")
                 self.is_synthetic = False
-                self.status_message = f"Reconnected to Camera {idx}"
+                self.status_message = f"Connected to Camera {self.device_index}"
+                return
+            time.sleep(0.3)
+
+        # Fallback to secondary indices only if primary is completely unavailable
+        for idx in self.fallback_indices:
+            if idx != self.device_index and self._open_device(idx):
+                logger.warning(f"Configured camera {self.device_index} unavailable. Fell back to index {idx}.")
+                self.is_synthetic = False
+                self.status_message = f"Fell back to Camera {idx}"
                 return
 
         if not self.is_synthetic:
-            logger.warning("Reconnection failed. Switching to synthetic arena feed.")
+            logger.warning("All physical cameras unavailable. Switching to synthetic arena feed.")
             self.is_synthetic = True
             self.status_message = "Running in Synthetic Arena Mode (Hardware Disconnected)"
 

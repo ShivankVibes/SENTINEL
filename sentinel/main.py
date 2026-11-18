@@ -135,8 +135,8 @@ class SentinelSystem:
         return success
 
     def get_available_cameras(self) -> list:
-        """Scan and return list of detected cameras."""
-        return CameraManager.probe_available_cameras(max_probe=4)
+        """Scan and return list of detected cameras without interrupting active streams."""
+        return CameraManager.probe_available_cameras(active_index=self.camera.current_index)
 
     def set_mode(self, new_mode: str):
         """Switch operating mode between SIMULATION and REAL."""

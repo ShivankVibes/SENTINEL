@@ -11,9 +11,9 @@ arena:
   safety_margin_cm: 15.0
 
 camera:
-  # Camera device index (0 is typically built-in or first connected webcam, 1 is secondary USB webcam)
-  device_index: 0
-  fallback_indices: [1, 2]
+  # Camera device index (1 is external USB webcam 'GENERAL - UVC', 0 is built-in MacBook camera)
+  device_index: 1
+  fallback_indices: [0]
   frame_width: 1280
   frame_height: 720
   fps: 30
