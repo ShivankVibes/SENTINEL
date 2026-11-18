@@ -1,0 +1,50 @@
+# SENTINEL - Demonstration Arena & Vision Configuration
+
+arena:
+  name: "SENTINEL Demonstration Zone"
+  # Dimensions of the demonstration floor in centimeters
+  width_cm: 200.0
+  height_cm: 150.0
+  # Resolution of the navigation grid (cell size in cm)
+  grid_resolution_cm: 5.0
+  # Safety margin added around obstacles and boundaries (in cm)
+  safety_margin_cm: 15.0
+
+camera:
+  # Camera device index (0 is typically built-in or first connected webcam, 1 is secondary USB webcam)
+  device_index: 0
+  fallback_indices: [1, 2]
+  frame_width: 1280
+  frame_height: 720
+  fps: 30
+  auto_reconnect: true
+  reconnect_interval_sec: 2.0
+
+calibration:
+  # 4-point ground calibration corners in pixel coordinates [[x,y], ...]
+  # Default placeholder corners spanning a standard central FOV
+  # These are updated interactively using the calibration tool or dashboard
+  source_points_pixel:
+    - [160, 90]    # Top-Left
+    - [1120, 90]   # Top-Right
+    - [1120, 630]  # Bottom-Right
+    - [160, 630]   # Bottom-Left
+  is_calibrated: false
+
+tracking:
+  # ArUco marker configuration for rover localization
+  aruco_dict: "DICT_4X4_50"
+  rover_marker_id: 0
+  marker_size_cm: 7.0
+
+hazard_detection:
+  # Safe Mock Anomaly detection parameters
+  # Mode can be "color_contour" or "ai_detector"
+  mode: "color_contour"
+  color_range:
+    # Default: High-visibility hazard color (e.g. fluorescent orange / yellow in HSV)
+    # Range 1: Orange-Red
+    lower_hsv: [5, 120, 120]
+    upper_hsv: [25, 255, 255]
+  min_contour_area_px: 400
+  hazard_radius_cm: 10.0

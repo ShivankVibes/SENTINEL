@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SENTINEL — Autonomous Hazard Detection & Response System</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="sentinel-app">
+    <!-- Header Bar -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="logo-radar"></div>
+        <div class="brand-text">
+          <h1>SENTINEL</h1>
+          <span class="subtitle">AI HAZARD OBSERVATION & AUTONOMOUS ROVER SYSTEM</span>
+        </div>
+      </div>
+
+      <div class="system-status-group">
+        <div id="mode-badge" class="badge badge-sim">MODE: SIMULATION</div>
+        <div id="state-badge" class="badge badge-idle">STATE: IDLE</div>
+        <div id="comms-badge" class="badge badge-comms">COMMS: CONNECTED</div>
+        <button id="btn-mode-toggle" class="btn btn-secondary">SWITCH TO REAL HARDWARE</button>
+        <button id="btn-emergency" class="btn btn-emergency">EMERGENCY STOP</button>
+      </div>
+    </header>
+
+    <!-- Main Mission Grid -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Video Feed & Vision Controls -->
+      <section class="panel panel-video">
+        <div class="panel-header">
+          <h2>OBSERVATION STATION — OPTICAL SENSOR</h2>
+          <div class="panel-tags">
+            <span id="cam-fps" class="tag">FPS: --</span>
+            <span id="cam-res" class="tag">1280x720</span>
+          </div>
+        </div>
+        <div class="video-container">
+          <img id="mjpeg-stream" src="/video_feed" alt="SENTINEL Live Feed" onerror="this.src='/static/fallback_stream.png'">
+          <div class="crosshair-reticle"></div>
+        </div>
+        <div class="video-footer">
+          <div class="status-row">
+            <span class="label">CAMERA SOURCE:</span>
+            <span id="cam-source" class="value">Index 0 (Hardware Webcam)</span>
+          </div>
+          <div class="status-row">
+            <span class="label">DETECTOR PIPELINE:</span>
+            <span id="det-mode" class="value">Classical CV (HSV Contour Segmenter)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Middle Column: Tactical Overhead Arena Map -->
+      <section class="panel panel-tactical">
+        <div class="panel-header">
+          <h2>TACTICAL DEMONSTRATION ARENA</h2>
+          <div class="map-controls">
+            <span class="hint">Click map in Simulation Mode to set target anomaly</span>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="arena-canvas" width="600" height="450"></canvas>
+        </div>
+        <div class="arena-legend">
+          <div class="legend-item"><span class="dot dot-rover"></span> Rover Marker (#0)</div>
+          <div class="legend-item"><span class="dot dot-target"></span> Anomaly / Hazard</div>
+          <div class="legend-item"><span class="dot dot-path"></span> Planned Trajectory</div>
+          <div class="legend-item"><span class="dot dot-margin"></span> Safety Margin</div>
+        </div>
+      </section>
+
+      <!-- Right Column: Telemetry & Sensor Readouts -->
+      <section class="panel panel-telemetry">
+        <div class="panel-header">
+          <h2>ROVER TELEMETRY & SENSORS</h2>
+        </div>
+
+        <div class="telemetry-cards">
+          <!-- Position Card -->
+          <div class="telemetry-card">
+            <div class="card-title">ROVER COORDINATES</div>
+            <div class="coord-display">
+              <div class="coord-val">X: <span id="val-x">--</span> <small>cm</small></div>
+              <div class="coord-val">Y: <span id="val-y">--</span> <small>cm</small></div>
+            </div>
+            <div class="heading-display">
+              HEADING: <span id="val-heading">--</span>°
+            </div>
+          </div>
+
+          <!-- Ultrasonic Sensor Card -->
+          <div class="telemetry-card">
+            <div class="card-title">FORWARD ULTRASONIC RANGE</div>
+            <div class="sensor-readout">
+              <span id="val-ultrasonic" class="big-metric">--</span>
+              <span class="unit">cm</span>
+            </div>
+            <div class="meter-bar">
+              <div id="ultrasonic-gauge" class="meter-fill" style="width: 50%;"></div>
+            </div>
+          </div>
+
+          <!-- Motion Command Card -->
+          <div class="telemetry-card">
+            <div class="card-title">ACTIVE CONTROL INSTRUCTION</div>
+            <div id="val-action" class="action-readout">IDLE</div>
+            <div id="val-reason" class="action-sub">System waiting for target</div>
+          </div>
+
+          <!-- Target Hazard Card -->
+          <div class="telemetry-card">
+            <div class="card-title">DETECTED TARGET HAZARD</div>
+            <div class="target-readout">
+              <span id="val-target-name">NONE DETECTED</span>
+              <div id="val-target-coords" class="sub-coords">X: -- cm, Y: -- cm</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Panel: Event Log & Security Alerts -->
+      <section class="panel panel-logs">
+        <div class="panel-header">
+          <h2>SYSTEM EVENT AUDIT & HAZARD ALERTS</h2>
+          <button id="btn-clear-logs" class="btn btn-sm">CLEAR</button>
+        </div>
+        <div id="log-console" class="log-console">
+          <!-- Populated dynamically via WebSocket -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/js/arena_map.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
