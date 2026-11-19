@@ -105,30 +105,51 @@ float readUltrasonic() {
 
 // HTTP API Handlers
 void handleCommand() {
-  if (!server.hasArg("plain")) {
-    server.send(400, "application/json", "{\"status\":\"ERROR\",\"message\":\"Missing body\"}");
-    return;
+  String action = "";
+  int duration = 250;
+  int speed = 180;
+
+  // 1. Check Query Parameters (e.g., /cmd?action=MOVE_FORWARD&speed=180)
+  if (server.hasArg("action")) {
+    action = server.arg("action");
+    if (server.hasArg("speed")) speed = server.arg("speed").toInt();
+    if (server.hasArg("duration_ms")) duration = server.arg("duration_ms").toInt();
+  }
+  // 2. Check JSON Body (supports arbitrary whitespace)
+  else if (server.hasArg("plain")) {
+    String body = server.arg("plain");
+
+    int actKey = body.indexOf("\"action\"");
+    if (actKey != -1) {
+      int colon = body.indexOf(":", actKey);
+      int q1 = body.indexOf("\"", colon);
+      int q2 = body.indexOf("\"", q1 + 1);
+      if (q1 != -1 && q2 != -1) {
+        action = body.substring(q1 + 1, q2);
+      }
+    }
+
+    int spdKey = body.indexOf("\"speed\"");
+    if (spdKey != -1) {
+      int colon = body.indexOf(":", spdKey);
+      int end = body.indexOf(",", colon);
+      if (end == -1) end = body.indexOf("}", colon);
+      if (end != -1) speed = body.substring(colon + 1, end).toInt();
+    }
+
+    int durKey = body.indexOf("\"duration_ms\"");
+    if (durKey != -1) {
+      int colon = body.indexOf(":", durKey);
+      int end = body.indexOf(",", colon);
+      if (end == -1) end = body.indexOf("}", colon);
+      if (end != -1) duration = body.substring(colon + 1, end).toInt();
+    }
   }
 
-  String body = server.arg("plain");
-  int actionIdx = body.indexOf("\"action\":\"");
-  if (actionIdx == -1) {
+  action.trim();
+  if (action.length() == 0) {
     server.send(400, "application/json", "{\"status\":\"ERROR\",\"message\":\"Invalid action\"}");
     return;
-  }
-  int actionEnd = body.indexOf("\"", actionIdx + 10);
-  String action = body.substring(actionIdx + 10, actionEnd);
-
-  int durIdx = body.indexOf("\"duration_ms\":");
-  int duration = 250;
-  if (durIdx != -1) {
-    duration = body.substring(durIdx + 14).toInt();
-  }
-
-  int spdIdx = body.indexOf("\"speed\":");
-  int speed = 180;
-  if (spdIdx != -1) {
-    speed = body.substring(spdIdx + 8).toInt();
   }
 
   lastCommandTime = millis();
