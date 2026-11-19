@@ -47,47 +47,57 @@ void setupSensors() {
   digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
 }
 
+void writeMotorPin(int pin, int speed) {
+  if (speed >= 240) {
+    digitalWrite(pin, HIGH);
+  } else if (speed <= 0) {
+    digitalWrite(pin, LOW);
+  } else {
+    analogWrite(pin, speed);
+  }
+}
+
 void stopMotors() {
-  analogWrite(MOTOR_LEFT_IN1, 0);
-  analogWrite(MOTOR_LEFT_IN2, 0);
-  analogWrite(MOTOR_RIGHT_IN3, 0);
-  analogWrite(MOTOR_RIGHT_IN4, 0);
+  digitalWrite(MOTOR_LEFT_IN1, LOW);
+  digitalWrite(MOTOR_LEFT_IN2, LOW);
+  digitalWrite(MOTOR_RIGHT_IN3, LOW);
+  digitalWrite(MOTOR_RIGHT_IN4, LOW);
   currentAction = "STOP";
 }
 
 void moveForward(int speed) {
   if (isEmergencyStopped) return;
   speed = constrain(speed, 0, 255);
-  // Left Motor Forward: IN1 = PWM, IN2 = LOW
-  analogWrite(MOTOR_LEFT_IN1, speed);
-  analogWrite(MOTOR_LEFT_IN2, 0);
-  // Right Motor Forward: IN3 = PWM, IN4 = LOW
-  analogWrite(MOTOR_RIGHT_IN3, speed);
-  analogWrite(MOTOR_RIGHT_IN4, 0);
+  // Left Motor Forward: IN1 = HIGH/PWM, IN2 = LOW
+  writeMotorPin(MOTOR_LEFT_IN1, speed);
+  digitalWrite(MOTOR_LEFT_IN2, LOW);
+  // Right Motor Forward: IN3 = HIGH/PWM, IN4 = LOW
+  writeMotorPin(MOTOR_RIGHT_IN3, speed);
+  digitalWrite(MOTOR_RIGHT_IN4, LOW);
   currentAction = "MOVE_FORWARD";
 }
 
 void turnLeft(int speed) {
   if (isEmergencyStopped) return;
   speed = constrain(speed, 0, 255);
-  // Left Motor Reverse: IN1 = LOW, IN2 = PWM
-  analogWrite(MOTOR_LEFT_IN1, 0);
-  analogWrite(MOTOR_LEFT_IN2, speed);
-  // Right Motor Forward: IN3 = PWM, IN4 = LOW
-  analogWrite(MOTOR_RIGHT_IN3, speed);
-  analogWrite(MOTOR_RIGHT_IN4, 0);
+  // Left Motor Reverse: IN1 = LOW, IN2 = HIGH/PWM
+  digitalWrite(MOTOR_LEFT_IN1, LOW);
+  writeMotorPin(MOTOR_LEFT_IN2, speed);
+  // Right Motor Forward: IN3 = HIGH/PWM, IN4 = LOW
+  writeMotorPin(MOTOR_RIGHT_IN3, speed);
+  digitalWrite(MOTOR_RIGHT_IN4, LOW);
   currentAction = "TURN_LEFT";
 }
 
 void turnRight(int speed) {
   if (isEmergencyStopped) return;
   speed = constrain(speed, 0, 255);
-  // Left Motor Forward: IN1 = PWM, IN2 = LOW
-  analogWrite(MOTOR_LEFT_IN1, speed);
-  analogWrite(MOTOR_LEFT_IN2, 0);
-  // Right Motor Reverse: IN3 = LOW, IN4 = PWM
-  analogWrite(MOTOR_RIGHT_IN3, 0);
-  analogWrite(MOTOR_RIGHT_IN4, speed);
+  // Left Motor Forward: IN1 = HIGH/PWM, IN2 = LOW
+  writeMotorPin(MOTOR_LEFT_IN1, speed);
+  digitalWrite(MOTOR_LEFT_IN2, LOW);
+  // Right Motor Reverse: IN3 = LOW, IN4 = HIGH/PWM
+  digitalWrite(MOTOR_RIGHT_IN3, LOW);
+  writeMotorPin(MOTOR_RIGHT_IN4, speed);
   currentAction = "TURN_RIGHT";
 }
 
@@ -224,8 +234,8 @@ void setup() {
     Serial.println(WiFi.localIP());
   #endif
 
-  server.on("/cmd", HTTP_POST, handleCommand);
-  server.on("/telemetry", HTTP_GET, handleTelemetry);
+  server.on("/cmd", handleCommand);
+  server.on("/telemetry", handleTelemetry);
   server.begin();
   Serial.println("[HTTP] Server listening.");
 }
