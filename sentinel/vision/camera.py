@@ -107,17 +107,14 @@ class CameraManager:
         """Dynamically switch to a different camera device without stopping the capture thread."""
         logger.info(f"Switching camera to device index {new_index}...")
         with self.lock:
-            old_cap = self.cap
-            self.cap = None
+            if self.cap:
+                try:
+                    self.cap.release()
+                except Exception:
+                    pass
+                self.cap = None
 
-        if old_cap:
-            try:
-                old_cap.release()
-            except Exception:
-                pass
-
-        success = self._open_device(new_index)
-        with self.lock:
+            success = self._open_device(new_index)
             if success:
                 self.device_index = new_index
                 self.is_synthetic = False
@@ -195,16 +192,27 @@ class CameraManager:
 
         while self.is_running:
             frame = None
-            if not self.is_synthetic and self.cap is not None:
-                ret, raw_frame = self.cap.read()
-                if ret and raw_frame is not None:
-                    frame = raw_frame
-                else:
-                    logger.warning("Frame read failed. Attempting reconnect...")
-                    self._attempt_reconnect()
-                    time.sleep(0.1)
-                    continue
-            else:
+            need_reconnect = False
+
+            with self.lock:
+                if not self.is_synthetic and self.cap is not None:
+                    try:
+                        ret, raw_frame = self.cap.read()
+                        if ret and raw_frame is not None and raw_frame.size > 0:
+                            frame = raw_frame
+                        else:
+                            need_reconnect = True
+                    except Exception as e:
+                        logger.warning(f"Exception during frame capture: {e}")
+                        need_reconnect = True
+
+            if need_reconnect:
+                logger.warning("Frame read failed. Attempting reconnect...")
+                self._attempt_reconnect()
+                time.sleep(0.1)
+                continue
+
+            if frame is None:
                 # Generate synthetic arena camera frame
                 frame = self._generate_synthetic_arena_frame(sim_tick)
                 sim_tick += 1
