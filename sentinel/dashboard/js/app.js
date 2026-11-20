@@ -12,23 +12,52 @@ document.addEventListener('DOMContentLoaded', () => {
   const camFps = document.getElementById('cam-fps');
   const camSource = document.getElementById('cam-source');
   const cameraSelect = document.getElementById('camera-select');
+  const btnRefreshCameras = document.getElementById('btn-refresh-cameras');
+  const manualCamInput = document.getElementById('manual-cam-index');
+  const btnManualCam = document.getElementById('btn-manual-cam');
   const mjpegStream = document.getElementById('mjpeg-stream');
-  const btnCam0 = document.getElementById('btn-cam-0');
-  const btnCam1 = document.getElementById('btn-cam-1');
 
   // Camera Management Functions
-  function updateCamButtons(activeIdx) {
-    if (btnCam0 && btnCam1) {
-      btnCam0.classList.toggle('active', activeIdx === 0);
-      btnCam1.classList.toggle('active', activeIdx === 1);
-    }
-    if (cameraSelect) {
-      cameraSelect.value = String(activeIdx);
+  async function loadCameraList() {
+    try {
+      const res = await fetch('/api/cameras');
+      const data = await res.json();
+      if (cameraSelect) {
+        cameraSelect.innerHTML = '';
+        if (data.cameras && data.cameras.length > 0) {
+          data.cameras.forEach((cam) => {
+            const opt = document.createElement('option');
+            opt.value = cam.index;
+            opt.textContent = cam.name;
+            if (cam.index === data.active_index) {
+              opt.selected = true;
+            }
+            cameraSelect.appendChild(opt);
+          });
+          cameraSelect.value = String(data.active_index);
+        } else {
+          for (let i = 0; i <= 4; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `Camera ${i}`;
+            if (i === data.active_index) opt.selected = true;
+            cameraSelect.appendChild(opt);
+          }
+        }
+      }
+      if (camSource) {
+        camSource.textContent = data.is_synthetic
+          ? 'Synthetic Feed (No camera active)'
+          : `Active: Camera Index ${data.active_index}`;
+      }
+    } catch (e) {
+      console.error('Failed to load camera list:', e);
     }
   }
 
   async function switchCamera(selectedIdx) {
-    camSource.textContent = `Connecting Camera ${selectedIdx}...`;
+    if (isNaN(selectedIdx) || selectedIdx < 0) return;
+    if (camSource) camSource.textContent = `Connecting Camera ${selectedIdx}...`;
     try {
       const res = await fetch('/api/camera/switch', {
         method: 'POST',
@@ -37,33 +66,47 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const result = await res.json();
       if (result.status === 'OK') {
-        updateCamButtons(result.active_index);
-        camSource.textContent = `Active: Camera Index ${result.active_index}`;
-        // Reconnect MJPEG stream
+        if (cameraSelect) cameraSelect.value = String(result.active_index);
+        if (camSource) {
+          camSource.textContent = result.is_synthetic
+            ? `Camera ${result.active_index} not available (Fallback)`
+            : `Active: Camera Index ${result.active_index}`;
+        }
+        // Force refresh MJPEG stream element
         setTimeout(() => {
-          mjpegStream.src = `/video_feed?t=${Date.now()}`;
+          if (mjpegStream) mjpegStream.src = `/video_feed?t=${Date.now()}`;
         }, 300);
       } else {
-        camSource.textContent = `Failed to connect Camera ${selectedIdx}`;
+        if (camSource) camSource.textContent = `Failed to connect Camera ${selectedIdx}`;
       }
     } catch (err) {
       console.error('Failed to switch camera:', err);
     }
   }
 
-  if (btnCam0) btnCam0.addEventListener('click', () => switchCamera(0));
-  if (btnCam1) btnCam1.addEventListener('click', () => switchCamera(1));
-  if (cameraSelect) cameraSelect.addEventListener('change', (e) => switchCamera(parseInt(e.target.value)));
+  if (cameraSelect) {
+    cameraSelect.addEventListener('change', (e) => {
+      switchCamera(parseInt(e.target.value));
+    });
+  }
 
-  async function loadCameraList() {
-    try {
-      const res = await fetch('/api/cameras');
-      const data = await res.json();
-      updateCamButtons(data.active_index);
-      camSource.textContent = `Active: Camera Index ${data.active_index}`;
-    } catch (e) {
-      console.error('Failed to load camera list:', e);
-    }
+  if (btnRefreshCameras) {
+    btnRefreshCameras.addEventListener('click', async () => {
+      btnRefreshCameras.textContent = 'Scanning...';
+      await loadCameraList();
+      setTimeout(() => {
+        btnRefreshCameras.textContent = '↻ Rescan';
+      }, 500);
+    });
+  }
+
+  if (btnManualCam && manualCamInput) {
+    btnManualCam.addEventListener('click', () => {
+      const val = parseInt(manualCamInput.value);
+      if (!isNaN(val)) {
+        switchCamera(val);
+      }
+    });
   }
 
   loadCameraList();

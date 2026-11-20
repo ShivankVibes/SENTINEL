@@ -261,50 +261,87 @@ body {
   align-items: center;
 }
 
-.cam-toggle-buttons {
+.cam-dropdown-container {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.btn-cam-toggle {
-  background-color: var(--bg-card);
-  color: var(--text-dim);
-  border: 1px solid var(--border-color);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 4px;
-}
-
-.btn-cam-toggle:hover {
-  border-color: var(--accent-cyan);
-  color: var(--text-main);
-}
-
-.btn-cam-toggle.active {
-  background-color: var(--accent-cyan);
-  color: #07090e;
-  border-color: var(--accent-cyan);
-  font-weight: 800;
-  box-shadow: 0 0 8px rgba(0, 210, 255, 0.4);
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .cam-dropdown {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
   color: var(--accent-cyan);
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 0.72rem;
+  padding: 5px 8px;
+  font-size: 0.75rem;
   font-family: var(--font-mono);
   outline: none;
   cursor: pointer;
-  max-width: 250px;
+  max-width: 280px;
+  width: 100%;
 }
 
 .cam-dropdown:focus {
   border-color: var(--accent-cyan);
+  box-shadow: 0 0 6px rgba(0, 210, 255, 0.3);
+}
+
+.btn-rescan {
+  background: transparent;
+  color: var(--accent-amber);
+  border: 1px solid rgba(255, 171, 0, 0.4);
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-rescan:hover {
+  background: rgba(255, 171, 0, 0.15);
+}
+
+.camera-manual-row {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.cam-manual-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cam-num-input {
+  width: 95px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+.cam-num-input:focus {
+  border-color: var(--accent-cyan);
+}
+
+.btn-connect-cam {
+  background: rgba(0, 210, 255, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-connect-cam:hover {
+  background: rgba(0, 210, 255, 0.3);
 }
 }
 

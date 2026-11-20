@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SENTINEL — Autonomous Hazard Detection & Response System</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=4">
+  <link rel="stylesheet" href="/static/css/style.css?v=5">
 </head>
 <body>
   <div class="sentinel-app">
@@ -45,18 +45,23 @@
         <div class="video-footer">
           <div class="status-row camera-select-row">
             <span class="label">SELECT CAMERA:</span>
-            <div class="cam-toggle-buttons">
-              <button id="btn-cam-0" class="btn btn-sm btn-cam-toggle" data-idx="0">CAMERA 0</button>
-              <button id="btn-cam-1" class="btn btn-sm btn-cam-toggle" data-idx="1">CAMERA 1</button>
+            <div class="cam-dropdown-container">
               <select id="camera-select" class="cam-dropdown">
-                <option value="0">Camera 0</option>
-                <option value="1">Camera 1</option>
+                <option value="0">Detecting cameras...</option>
               </select>
+              <button id="btn-refresh-cameras" class="btn btn-sm btn-rescan" title="Scan for newly plugged cameras">↻ Rescan</button>
+            </div>
+          </div>
+          <div class="status-row camera-manual-row">
+            <span class="label">MANUAL INDEX:</span>
+            <div class="cam-manual-container">
+              <input type="number" id="manual-cam-index" min="0" max="9" placeholder="Index (0-9)" class="cam-num-input">
+              <button id="btn-manual-cam" class="btn btn-sm btn-connect-cam">Connect</button>
             </div>
           </div>
           <div class="status-row">
             <span class="label">ACTIVE DEVICE:</span>
-            <span id="cam-source" class="value">Camera Index 0</span>
+            <span id="cam-source" class="value">Detecting...</span>
           </div>
           <div class="status-row">
             <span class="label">DETECTOR PIPELINE:</span>
@@ -146,7 +151,7 @@
     </main>
   </div>
 
-  <script src="/static/js/arena_map.js?v=4"></script>
-  <script src="/static/js/app.js?v=4"></script>
+  <script src="/static/js/arena_map.js?v=5"></script>
+  <script src="/static/js/app.js?v=5"></script>
 </body>
 </html>

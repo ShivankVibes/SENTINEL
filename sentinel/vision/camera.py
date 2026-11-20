@@ -50,57 +50,64 @@ class CameraManager:
         self.status_message = "Uninitialized"
 
     @classmethod
-    def probe_available_cameras(cls, active_index: int = -1) -> list:
+    def probe_available_cameras(cls, active_index: int = -1, max_index: int = 6) -> list:
         """Scan system for available video capture devices without disrupting active streams."""
         cameras = []
-        # Try macOS native system profiler first to avoid locking AVFoundation UVC streams
+        profiler_names = []
         try:
             out = subprocess.check_output(["system_profiler", "SPCameraDataType"], text=True, timeout=2.0)
             lines = [line.strip() for line in out.splitlines() if line.strip()]
-            names = []
             for line in lines:
                 if line.endswith(":") and line != "Camera:":
-                    names.append(line[:-1].strip())
-            
-            for idx, name in enumerate(names):
-                is_ext = idx > 0
-                label = f"Camera {idx}: {name}" + (" (External USB)" if is_ext else " (Built-in Mac)")
-                cameras.append({
-                    "index": idx,
-                    "name": label,
-                    "resolution": "1920x1080",
-                    "is_responsive": True,
-                })
-            if cameras:
-                return cameras
+                    profiler_names.append(line[:-1].strip())
         except Exception as e:
             logger.debug(f"system_profiler probe failed: {e}")
 
-        # Fallback OpenCV index probe (skips active_index to protect active stream)
-        for idx in range(3):
+        # Probe indices 0 to max_index
+        for idx in range(max_index + 1):
             if idx == active_index:
+                name = profiler_names[idx] if idx < len(profiler_names) else f"Device {idx}"
                 cameras.append({
                     "index": idx,
-                    "name": f"Camera {idx}: Active Camera (Streaming)",
+                    "name": f"Camera {idx}: {name} [ACTIVE]",
                     "resolution": "1920x1080",
                     "is_responsive": True,
                 })
                 continue
+
             try:
-                cap = cv2.VideoCapture(idx)
+                cap = cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
+                if not cap.isOpened():
+                    cap = cv2.VideoCapture(idx)
                 if cap.isOpened():
-                    ret, _ = cap.read()
+                    ret, frame = cap.read()
+                    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                     cap.release()
-                    if ret:
-                        desc = "Built-in Camera" if idx == 0 else "External USB Camera"
+                    if ret and frame is not None and frame.size > 0:
+                        name = profiler_names[idx] if idx < len(profiler_names) else f"Video Device {idx}"
                         cameras.append({
                             "index": idx,
-                            "name": f"Camera {idx}: {desc}",
-                            "resolution": "1920x1080",
+                            "name": f"Camera {idx}: {name} ({w}x{h})",
+                            "resolution": f"{w}x{h}",
                             "is_responsive": True,
                         })
             except Exception:
                 pass
+
+        # If only 1 camera was detected, offer unprobed indices as options so user can force-connect
+        detected_indices = {c["index"] for c in cameras}
+        for fallback_idx in range(4):
+            if fallback_idx not in detected_indices:
+                fallback_name = profiler_names[fallback_idx] if fallback_idx < len(profiler_names) else f"Device {fallback_idx}"
+                cameras.append({
+                    "index": fallback_idx,
+                    "name": f"Camera {fallback_idx}: {fallback_name} (Select to connect)",
+                    "resolution": "Auto",
+                    "is_responsive": False,
+                })
+
+        cameras.sort(key=lambda x: x["index"])
         return cameras
 
     def switch_device(self, new_index: int) -> bool:
